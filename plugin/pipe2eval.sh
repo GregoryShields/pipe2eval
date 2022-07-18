@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# TODO
-# * each buffer should has it's own context
+# TODO: Each buffer should have its own context.
 
 INPUT_LANG=$1
 INPUT_FILE="$2"
@@ -9,16 +8,16 @@ INPUT_FILE="$2"
 if [ -z "$PIP2EVAL_TMP_FILE_PATH" ]; then
 	PIP2EVAL_TMP_FILE_PATH=/dev/shm/
 fi
+
 PREFIX=repl
 TMP_FILE=$PIP2EVAL_TMP_FILE_PATH$PREFIX.$INPUT_LANG
 
-
-fn_exists(){
+fn_exists() {
 	declare -F $1 &> /dev/null
 	return $?
 }
 
-fn_call(){
+fn_call() {
 	if fn_exists $INPUT_LANG\_$1; then
 		$INPUT_LANG\_$1 ${@:2}
 	else
@@ -26,7 +25,7 @@ fn_call(){
 	fi
 }
 
-process_commands(){
+process_commands() {
 	cmd="$( sed -n '1 s/^[#\/;-]\{1,2\}> \([a-zA-Z0-9_-]\+\) \?\(.*\)\?$/\1/p' < $TMP_FILE.new)"
 	args="$(sed -n '1 s/^[#\/;-]\{1,2\}> \([^ ]\+\) \(.*\)$/\2/p' < $TMP_FILE.new)"
 	if [ -n "$cmd" ]; then
@@ -45,15 +44,15 @@ hr() {
 
 # commands ---------------------------------------------------------------------
 
-default_command_files(){
+default_command_files() {
 	find $PIP2EVAL_TMP_FILE_PATH -maxdepth 1 -name "$PREFIX.$INPUT_LANG*"
 }
 
-default_command_reset(){
+default_command_reset() {
 	find $PIP2EVAL_TMP_FILE_PATH -maxdepth 1 -name "$PREFIX.$INPUT_LANG*" -exec rm -f {} \;
 }
 
-default_command_set(){
+default_command_set() {
 	if [ -n "$1" ]; then
 		echo $2 > $TMP_FILE.$1
 	fi
@@ -62,44 +61,44 @@ default_command_set(){
 
 # default ----------------------------------------------------------------------
 
-default_comment(){
+default_comment() {
 	# do nothing
 	:
 }
 
-default_init(){
+default_init() {
 	fn_call reset > /dev/null
 }
 
-default_reset(){
+default_reset() {
 	> $TMP_FILE
 	> $TMP_FILE.error
 	echo '# context cleared'
 }
 
-default_error(){
+default_error() {
 	echo "# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 	sed -e 's/^\(.*\)$/#     \1/' < "$TMP_FILE.error"
 	echo "# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 }
 
-default_merge(){
+default_merge() {
 	# do nothing
 	:
 }
 
-default_eval(){
+default_eval() {
 	cat $TMP_FILE "$TMP_FILE.new" |  $INPUT_LANG - 2> "$TMP_FILE.error" |\
 		sed -e 's/^\(.*\)$/# \1/'
 }
 
-# php --------------------------------------------------------------------------
+# php --------------------------------------------------------------------------{{{
 
-php_reset(){
+php_reset() {
 	echo '<?php ' > $TMP_FILE
 }
 
-php_eval(){
+php_eval() {
 	fns=$(sed -n "s/^function \+\([^(]\+\).*$/\1/p" < "$TMP_FILE.new")
 	for fn in $fns; do
 		sed -i "s/^function \+\($fn\) *(/function \1$(date +%s)(/" "$TMP_FILE"
@@ -118,18 +117,18 @@ php_eval(){
 		php 2> "$TMP_FILE.error" | sed -e 's/^\(.*\)$/# \1/'
 }
 
-php_merge(){
+php_merge() {
 	cat "$TMP_FILE.new" >> $TMP_FILE;
 }
 
 # python -----------------------------------------------------------------------
 
-python_reset(){
+python_reset() {
 	echo 'import pprint' > $TMP_FILE
 	echo '# context cleared'
 }
 
-python_eval(){
+python_eval() {
 	tail -1 $TMP_FILE.new | grep -q '^\s*\(return\|import\|from\)'
 
 	if [ $? -eq 0 ]; then
@@ -144,13 +143,13 @@ python_eval(){
 	fi
 }
 
-python_merge(){
+python_merge() {
 	cat "$TMP_FILE.new" >> $TMP_FILE;
 }
 
 # coffeescript -----------------------------------------------------------------
 
-coffee_eval(){
+coffee_eval() {
 	cat $TMP_FILE $TMP_FILE.new |\
 		sed -e '/^$/d' |\
 		sed '$ s/^\([ \t]*\)\(.*\)$/\1____ =\2\
@@ -159,13 +158,13 @@ coffee_eval(){
 	$INPUT_LANG $TMP_FILE.eval 2> $TMP_FILE.error | sed -e 's/^\(.*\)$/# \1/'
 }
 
-coffee_merge(){
+coffee_merge() {
 	cat "$TMP_FILE.new" >> $TMP_FILE;
 }
 
 # livescript ------------------------------------------------------------------
 
-ls_eval(){
+ls_eval() {
 	cat $TMP_FILE $TMP_FILE.new |\
 		sed -e '/^$/d' |\
 		sed '$ s/^\([ \t]*\)\(.*\)$/\1____ =\2\
@@ -174,23 +173,23 @@ ls_eval(){
 	livescript $TMP_FILE.eval 2> $TMP_FILE.error | sed -e 's/^\(.*\)$/# \1/'
 }
 
-ls_merge(){
+ls_merge() {
 	cat "$TMP_FILE.new" >> $TMP_FILE;
 }
 
 # javascript -------------------------------------------------------------------
 
-javascript_eval(){
+javascript_eval() {
 	cat $TMP_FILE $TMP_FILE.new |\
 		sed -e '/^$/d' > $TMP_FILE.eval
 	node -p < $TMP_FILE.eval 2> $TMP_FILE.error | sed -e 's/^\(.*\)$/\/\/ \1/'
 }
 
-javascript_merge(){
+javascript_merge() {
 	cat "$TMP_FILE.new" >> $TMP_FILE;
 }
 
-javascript_reset(){
+javascript_reset() {
 	> $TMP_FILE
 	> $TMP_FILE.error
 	echo '// context cleared'
@@ -198,7 +197,7 @@ javascript_reset(){
 
 # ruby -------------------------------------------------------------------------
 
-ruby_eval(){
+ruby_eval() {
 	cat $TMP_FILE $TMP_FILE.new | sed -e '/^$/d' |\
 		sed '$! b
 			/^[ \t]*end/ b
@@ -209,13 +208,13 @@ ruby_eval(){
 		$INPUT_LANG - 2> $TMP_FILE.error | sed -e 's/^\(.*\)$/# \1/'
 }
 
-ruby_merge(){
+ruby_merge() {
 	cat "$TMP_FILE.new" >> $TMP_FILE;
 }
 
 # elixir -----------------------------------------------------------------------
 
-elixir_eval(){
+elixir_eval() {
 	cat $TMP_FILE $TMP_FILE.new | sed -e '/^$/d' |\
 		sed '$! b
 			/^[ \t]*end/ b
@@ -228,13 +227,13 @@ elixir_eval(){
 		sed -i '/variable .* is unused/d' $TMP_FILE.error
 }
 
-elixir_merge(){
+elixir_merge() {
 	cat "$TMP_FILE.new" >> $TMP_FILE;
 }
 
 # lua --------------------------------------------------------------------------
 
-lua_eval(){
+lua_eval() {
 	cat $TMP_FILE $TMP_FILE.new | sed -e '/^$/d' |\
 		sed '$! b
 			/^[ \t]*end/ b
@@ -244,11 +243,11 @@ lua_eval(){
 		$INPUT_LANG - 2> $TMP_FILE.error | sed -e 's/^\(.*\)$/-- \1/'
 }
 
-lua_merge(){
+lua_merge() {
 	cat "$TMP_FILE.new" >> $TMP_FILE;
 }
 
-lua_reset(){
+lua_reset() {
 	> $TMP_FILE
 	> $TMP_FILE.error
 	echo '-- context cleared'
@@ -256,53 +255,53 @@ lua_reset(){
 
 # go ---------------------------------------------------------------------------
 
-go_reset(){
+go_reset() {
 	go_eval
 }
 
-go_eval(){
+go_eval() {
 	hr "// "
 	$INPUT_LANG run "$INPUT_FILE" | sed -e 's/^\(.*\)$/\/\/ \1/'
 }
 
 # rust -------------------------------------------------------------------------
 
-rust_eval(){
+rust_eval() {
 	hr "// "
 	rustc $INPUT_FILE -o $TMP_FILE.out
 	$TMP_FILE.out | sed -e 's/^\(.*\)$/\/\/ \1/'
 }
 
-rust_reset(){
+rust_reset() {
 	rust_eval
 }
 
 # haskell ----------------------------------------------------------------------
 
-haskell_reset(){
+haskell_reset() {
 	> $TMP_FILE
 	> $TMP_FILE.error
 	echo '-- context cleared'
 }
 
-haskell_eval(){
+haskell_eval() {
 	if grep -q '^main' $TMP_FILE.new; then
 		cat $TMP_FILE "$TMP_FILE.new" |\
 			runhaskell 2> "$TMP_FILE.error" | sed -e 's/^\(.*\)$/-- \1/'
 	fi
 }
 
-# haskell_merge(){
+# haskell_merge() {
 # 	cat "$TMP_FILE.new" | sed '/^main/,$ d' >> $TMP_FILE;
 # }
 
 # c ----------------------------------------------------------------------------
 
-c_reset(){
+c_reset() {
 	c_eval
 }
 
-c_eval(){
+c_eval() {
 	argv="$(sed -n 's/\s*\/\/// p' $TMP_FILE.new)"
 	cc -Wall -g "$INPUT_FILE" -o "$TMP_FILE.o"
 	hr "// "
@@ -311,7 +310,7 @@ c_eval(){
 
 # bash -------------------------------------------------------------------------
 
-bash_eval(){
+bash_eval() {
 	if [ -f $TMP_FILE.ssh ]; then
 		host="$(cat $TMP_FILE.ssh)"
 		if [ -n "$host" ]; then
@@ -327,20 +326,20 @@ bash_eval(){
 
 # markdown ---------------------------------------------------------------------
 
-markdown_eval(){
+markdown_eval() {
 	markdown $TMP_FILE.new
 }
 
 # mongo ------------------------------------------------------------------------
 
-mongo_exec(){
+mongo_exec() {
 	[ -f $TMP_FILE.host ] && host=$(cat $TMP_FILE.host) || host=127.0.0.1
 	[ -f $TMP_FILE.port ] && port=$(cat $TMP_FILE.port) || port=27017
 	[ -f $TMP_FILE.db ] && db=$(cat $TMP_FILE.db)
 	mongo --quiet --host $host --port $port $db $TMP_FILE.eval
 }
 
-mongo_eval(){
+mongo_eval() {
 	db=$(sed -ne 's/^use \([a-zA-Z0-9_-]\+\)$/\1/p' < $TMP_FILE.new)
 	if [ -n "$db" ]; then
 		echo $db > $TMP_FILE.db
@@ -357,16 +356,16 @@ mongo_eval(){
 
 	sed -e 's/^\(db\..*\)/var ____ = \1/' \
 		-e '$ a \
-if("undefined" != typeof ____ && null != ____){\
-	if("function" == typeof ____.toArray){\
+if("undefined" != typeof ____ && null != ____) {\
+	if("function" == typeof ____.toArray) {\
 		____ = ____.toArray()\
-		if (____.length == 1){\
+		if (____.length == 1) {\
 			____ = ____[0]\
 		}else{\
 			print("items:" + ____.length)\
 		}\
 	}\
-	if(Array.isArray(____) && ____.length > 20){\
+	if(Array.isArray(____) && ____.length > 20) {\
 		printjson(____.slice(0,20))\
 		print("...")\
 	}else{\
@@ -376,27 +375,27 @@ if("undefined" != typeof ____ && null != ____){\
 	mongo_exec
 }
 
-mongo_command_version(){
+mongo_command_version() {
 	echo 'print(db.version())' > $TMP_FILE.eval
 	mongo_exec
 }
 
-mongo_command_dbs(){
+mongo_command_dbs() {
 	echo 'printjson(db.getMongo().getDBNames())' > $TMP_FILE.eval
 	mongo_exec
 }
 
-mongo_command_collections(){
+mongo_command_collections() {
 	echo 'printjson(db.getCollectionNames())' > $TMP_FILE.eval
 	mongo_exec
 }
 
-mongo_command_connections(){
-	echo 'db.currentOp(true).inprog.forEach(function(o){print(o.client)});' > $TMP_FILE.eval
+mongo_command_connections() {
+	echo 'db.currentOp(true).inprog.forEach(function(o) {print(o.client)});' > $TMP_FILE.eval
    mongo_exec | cut -d ':' -f 1 | sort | uniq -c | sort -rn
 }
 
-mongo_command_session(){
+mongo_command_session() {
 	[ -f $TMP_FILE.host ] && host=$(cat $TMP_FILE.host) || host=127.0.0.1
 	[ -f $TMP_FILE.port ] && port=$(cat $TMP_FILE.port) || port=27017
 	[ -f $TMP_FILE.db ] && db=$(cat $TMP_FILE.db)
@@ -406,7 +405,7 @@ mongo_command_session(){
 	echo "db $db"
 }
 
-mongo_command_status(){
+mongo_command_status() {
 	if [ -n "$1" ]; then
 		echo "printjson(db.serverStatus().$1)" > $TMP_FILE.eval
 	else
@@ -417,7 +416,7 @@ mongo_command_status(){
 
 # sql --------------------------------------------------------------------------
 
-sql_eval(){
+sql_eval() {
 	host=`sed -ne 's/^-- host \([a-zA-Z0-9._-]\+\)$/\1/p' < $TMP_FILE.new`
 	user=`sed -ne 's/^-- user \([a-zA-Z0-9._-]\+\)$/\1/p' < $TMP_FILE.new`
 	password=`sed -ne 's/^-- password \([a-zA-Z0-9._#$-]\+\)$/\1/p' < $TMP_FILE.new`
@@ -466,7 +465,7 @@ sql_eval(){
 
 # sqlite -----------------------------------------------------------------------
 
-sqlite_eval(){
+sqlite_eval() {
 	file=`sed -ne 's/^-- file \(.*\)$/\1/p' < $TMP_FILE.new`
 
 	FILE_SAVED=$TMP_FILE.file
@@ -484,54 +483,66 @@ sqlite_eval(){
 
 # xml --------------------------------------------------------------------------
 
-xml_eval(){
+xml_eval() {
 	sed -e 's/^[^<]*//' -e 's/[^>]*$//' | xml_pp
 }
 
 # redis ------------------------------------------------------------------------
 
-redis_eval(){
+redis_eval() {
 	redis-cli -x < $TMP_FILE.new
 }
 
 
 # json -------------------------------------------------------------------------
 
-json_eval(){
+json_eval() {
 	python -mjson.tool < $TMP_FILE.new
 }
 
 # yaml -------------------------------------------------------------------------
 
-yaml_eval(){
+yaml_eval() {
 	ruby -ryaml -rjson -e 'puts JSON.pretty_generate(YAML.load(STDIN.read))' \
 		< $TMP_FILE.new 2> "$TMP_FILE.error" | sed -e 's/^\(.*\)$/# \1/'
 }
 
 # html -------------------------------------------------------------------------
 
-html_eval(){
+html_eval() {
 	html2text < $TMP_FILE.new
 }
 
 # R ----------------------------------------------------------------------------
 
-r_eval(){
+r_eval() {
 	R --vanilla <$TMP_FILE.new> $TMP_FILE.out
 	sed -n '20,$p' $TMP_FILE.out | sed -ne 's/^\([^>].*\)$/# \1/p'
 }
 
+# ------------------------------------------------------------------------------}}}
 # main -------------------------------------------------------------------------
 
-main(){
+main() {
 	tee $TMP_FILE.new
+
+	echo " " >> log.txt
+	echo "tee $TMP_FILE.new" >> log.txt
+
+	[ ! -f '$TMP_FILE' ]
+	echo "[ ! -f '$TMP_FILE' ] returns $?" >> log.txt
 
 	if [ ! -f "$TMP_FILE" ]; then
 		fn_call 'init'
+		echo "fn_call 'init'" >> log.txt
 	fi
+
+	$(sed '/^$/d' < "$TMP_FILE.new") >> log.txt
+	$(sed '' < "$TMP_FILE.new") >> log.txt
 
 	if [ -z "$(sed '/^$/d' < "$TMP_FILE.new")" ]; then
 		fn_call 'reset'
+		echo "fn_call 'reset'" >> log.txt
 		exit 0
 	fi
 
@@ -547,3 +558,5 @@ main(){
 }
 
 main
+
+
