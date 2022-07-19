@@ -24,7 +24,7 @@ function! Pipe2eval(lang)
 	let l:map_key = exists('g:pipe2eval_map_key') ? g:pipe2eval_map_key : s:map_key_default
 
 	" See NOTE 4
-	execute "vmap <buffer> ". l:map_key ." :!". g:pipe2eval ." ". a:lang . " " . expand('%:p') . "<CR><CR>gv<Esc>"
+	execute "vmap <buffer> " . l:map_key . " :!". g:pipe2eval . " " . a:lang . " " . expand('%:p') . "<CR><CR>gv<Esc>"
 endfunction
 
 " See NOTE 5
@@ -55,21 +55,25 @@ au FileType * call Pipe2eval(&filetype)
 "
 " NOTE 4:
 " For Visual Mode and Select Mode in the current buffer only, map <Space>
-" to run this plugin's pipe2eval.sh script, passing it the value of
-" a:lang ("sh") as the first argument and the full path to this present
-" Vim script file as the second argument.
+" to do two things:
+" 1. Run this plugin's pipe2eval.sh script, passing it the value of
+" a:lang ("bash") as the first argument and the full path to the current
+" buffer's underlying file as the second argument.
 " In the script the two arguments become the values of two variables,
 " namely INPUT_LANG and INPUT_FILE respectively.
+" 2. Press gv to reselect the previously selected text and then press <Esc>
+" to go back to Normal Mode.
 "
 " Running the script presumably causes the Visual Mode selection to be lost,
 " perhaps by actually writing the result of running the selected code into
 " the buffer?
-" Therefore, run the Vim gv command to start Visual Mode again, re-selecting
-" the previously selected lines.
+" Therefore, the Vim gv command is run to start Visual Mode again, re-selecting
+" the previously selected lines, and afterwards <Esc> is pressed to return to
+" Normal Mode.
 " See the answer here...
 " https://vi.stackexchange.com/questions/9054/using-visual-mode-without-changing-gv
 " ...for how to save and restore the marks that the gv command relies upon.
-" Then press <Esc> to return to Normal Mode.
+" 
 
 
 " The repo README says...

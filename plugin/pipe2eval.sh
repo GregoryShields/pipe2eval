@@ -10,7 +10,7 @@ if [ -z "$PIPE2EVAL_TMP_FILE_PATH" ]; then
 	PIPE2EVAL_TMP_FILE_PATH=/dev/shm/
 fi
 
-PREFIX=repl
+PREFIX="repl"
 TMP_FILE=$PIPE2EVAL_TMP_FILE_PATH$PREFIX.$INPUT_LANG
 
 fn_exists() {
@@ -29,7 +29,12 @@ fn_call() {
 process_commands() {
 	cmd="$( sed -n '1 s/^[#\/;-]\{1,2\}> \([a-zA-Z0-9_-]\+\) \?\(.*\)\?$/\1/p' < $TMP_FILE.new)"
 	args="$(sed -n '1 s/^[#\/;-]\{1,2\}> \([^ ]\+\) \(.*\)$/\2/p' < $TMP_FILE.new)"
+
+	echo "\$cmd=$cmd" >> log.txt
+	echo "\$args=$args" >> log.txt
+
 	if [ -n "$cmd" ]; then
+		echo "fn_call command_$cmd '$args'"
 		fn_call command_$cmd "$args"
 		exit 0
 	fi
@@ -530,12 +535,16 @@ main() {
 	echo " " >> log.txt
 	echo "tee $TMP_FILE.new" >> log.txt
 
-	[ ! -f '$TMP_FILE' ]
-	echo "[ ! -f '$TMP_FILE' ] returns $?" >> log.txt
+	# This block of logging code helps make sense of the block of code below it.
+	if [ ! -f "$TMP_FILE" ]; then
+		echo "$TMP_FILE either DOES NOT exist or IS NOT a regular file, so call: fn_call 'init'." >> log.txt
+	else
+		echo "$TMP_FILE exists and is a regular file, so DO NOT call: fn_call 'init'." >> log.txt
+	fi
 
 	if [ ! -f "$TMP_FILE" ]; then
-		fn_call 'init'
 		echo "fn_call 'init'" >> log.txt
+		fn_call 'init'
 	fi
 
 	$(sed '/^$/d' < "$TMP_FILE.new") >> log.txt
@@ -550,6 +559,17 @@ main() {
 	process_commands
 
 	fn_call 'eval'
+	# Let's say INPUT_LANG is "bash".
+	# If we have defined a function named "bash_eval" (which we have), call it.
+	# Otherwise, call our default function "default_eval" if INPUT_LANG is something
+	# we haven't defined an 'eval' function for.
+	# Since in this case we didn't pass any arguments to fn_call other than the
+	# function name suffix 'eval', no arguments are passed in the call to bash_eval.
+	# In fact, I can find no place in this entire script where fn_call is passed more
+	# than a single argument. Thus, the
+	# ${@:2}
+	# argument construction inside of fn_call never even comes into play. Nevertheless,
+	# it is there should we ever need it in the future.
 
 	if [ -s "$TMP_FILE.error" ]; then
 		fn_call 'error'
