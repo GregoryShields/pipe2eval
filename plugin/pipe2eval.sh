@@ -5,12 +5,13 @@
 INPUT_LANG=$1
 INPUT_FILE="$2"
 
-if [ -z "$TMP_FILE_PATH" ]; then
-	TMP_FILE_PATH=/dev/shm/
+# If not exported from .bashrc, use default path.
+if [ -z "$PIPE2EVAL_TMP_FILE_PATH" ]; then
+	PIPE2EVAL_TMP_FILE_PATH=/dev/shm/
 fi
 
 PREFIX=repl
-TMP_FILE=$TMP_FILE_PATH$PREFIX.$INPUT_LANG
+TMP_FILE=$PIPE2EVAL_TMP_FILE_PATH$PREFIX.$INPUT_LANG
 
 fn_exists() {
 	declare -F $1 &> /dev/null
@@ -45,11 +46,11 @@ hr() {
 # commands ---------------------------------------------------------------------
 
 default_command_files() {
-	find $TMP_FILE_PATH -maxdepth 1 -name "$PREFIX.$INPUT_LANG*"
+	find $PIPE2EVAL_TMP_FILE_PATH -maxdepth 1 -name "$PREFIX.$INPUT_LANG*"
 }
 
 default_command_reset() {
-	find $TMP_FILE_PATH -maxdepth 1 -name "$PREFIX.$INPUT_LANG*" -exec rm -f {} \;
+	find $PIPE2EVAL_TMP_FILE_PATH -maxdepth 1 -name "$PREFIX.$INPUT_LANG*" -exec rm -f {} \;
 }
 
 default_command_set() {
