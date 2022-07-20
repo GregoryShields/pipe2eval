@@ -13,6 +13,16 @@ fi
 PREFIX="repl"
 TMP_FILE=$PIPE2EVAL_TMP_FILE_PATH$PREFIX.$INPUT_LANG
 
+echo " " >> log.txt
+#echo "INPUT_FILE: $INPUT_FILE" >> log.txt
+echo "These 3 combine..." >> log.txt
+echo "PIPE2EVAL_TMP_FILE_PATH: $PIPE2EVAL_TMP_FILE_PATH" >> log.txt
+echo "PREFIX: $PREFIX" >> log.txt
+echo "INPUT_LANG: $INPUT_LANG" >> log.txt
+echo "...to make:" >> log.txt
+echo "TMP_FILE: $TMP_FILE" >> log.txt
+echo "-------------------------" >> log.txt
+
 fn_exists() {
 	declare -F $1 &> /dev/null
 	return $?
@@ -94,6 +104,8 @@ default_merge() {
 }
 
 default_eval() {
+	echo "default_eval called" >> log.txt
+
 	cat $TMP_FILE "$TMP_FILE.new" |  $INPUT_LANG - 2> "$TMP_FILE.error" |\
 		sed -e 's/^\(.*\)$/# \1/'
 }
@@ -532,21 +544,25 @@ r_eval() {
 main() {
 	tee $TMP_FILE.new
 
-	echo " " >> log.txt
-	echo "tee $TMP_FILE.new" >> log.txt
+# 	# Log the above tee command.
+# 	echo "tee $TMP_FILE.new" >> log.txt
+# 
+# 	echo "-------------------------" >> log.txt
+# 	echo "Frankly, I don't understand why we care about $TMP_FILE right here." >> log.txt
+# 	# This block of logging code helps make sense of the block of code below it.
+# 	if [ ! -f "$TMP_FILE" ]; then
+# 		echo "$TMP_FILE either DOES NOT exist or IS NOT a regular file, so call: fn_call 'init'." >> log.txt
+# 	else
+# 		echo "$TMP_FILE exists and is a regular file, so DO NOT call: fn_call 'init'." >> log.txt
+# 	fi
+# 
+ 	if [ ! -f "$TMP_FILE" ]; then
+ 		echo "fn_call 'init'" >> log.txt
+ 		fn_call 'init'
+ 	fi
 
-	# This block of logging code helps make sense of the block of code below it.
-	if [ ! -f "$TMP_FILE" ]; then
-		echo "$TMP_FILE either DOES NOT exist or IS NOT a regular file, so call: fn_call 'init'." >> log.txt
-	else
-		echo "$TMP_FILE exists and is a regular file, so DO NOT call: fn_call 'init'." >> log.txt
-	fi
-
-	if [ ! -f "$TMP_FILE" ]; then
-		echo "fn_call 'init'" >> log.txt
-		fn_call 'init'
-	fi
-
+	echo "-------------------------" >> log.txt
+	echo "Somehow $TMP_FILE.new has our selected text here already." >> log.txt
 	$(sed '/^$/d' < "$TMP_FILE.new") >> log.txt
 	$(sed '' < "$TMP_FILE.new") >> log.txt
 
@@ -556,20 +572,14 @@ main() {
 		exit 0
 	fi
 
+	echo "-------------------------" >> log.txt
+	echo "process_commands" >> log.txt
 	process_commands
 
+	echo "-------------------------" >> log.txt
+	echo "fn_call 'eval'" >> log.txt
+	# See NOTE 1
 	fn_call 'eval'
-	# Let's say INPUT_LANG is "bash".
-	# If we have defined a function named "bash_eval" (which we have), call it.
-	# Otherwise, call our default function "default_eval" if INPUT_LANG is something
-	# we haven't defined an 'eval' function for.
-	# Since in this case we didn't pass any arguments to fn_call other than the
-	# function name suffix 'eval', no arguments are passed in the call to bash_eval.
-	# In fact, I can find no place in this entire script where fn_call is passed more
-	# than a single argument. Thus, the
-	# ${@:2}
-	# argument construction inside of fn_call never even comes into play. Nevertheless,
-	# it is there should we ever need it in the future.
 
 	if [ -s "$TMP_FILE.error" ]; then
 		fn_call 'error'
@@ -579,5 +589,22 @@ main() {
 }
 
 main
+
+
+# NOTE 1:
+# Let's say INPUT_LANG is "sh".
+# If we have defined a function named "sh_eval" (which we haven't), call it.
+# (There is, however, a "bash_eval" function, but my &filetype is "sh", not "bash".)
+# Otherwise, call our default function "default_eval".
+#
+# Since in this case we didn't pass any arguments to fn_call other than the
+# function name suffix 'eval', no arguments are passed in the call to default_eval.
+# In fact, I can find no place in this entire script where fn_call is passed more
+# than a single argument. Thus, the...
+# ${@:2}
+# ...argument construction inside of fn_call never even comes into play. Nevertheless,
+# it is there should we ever need it in the future.
+
+
 
 
