@@ -4,6 +4,8 @@
 
 INPUT_LANG=$1
 INPUT_FILE="$2"
+echo " " >> log.txt
+#echo "INPUT_FILE: $INPUT_FILE" >> log.txt
 
 # If not exported from .bashrc, use default path.
 if [ -z "$PIPE2EVAL_TMP_FILE_PATH" ]; then
@@ -13,22 +15,25 @@ fi
 PREFIX="repl"
 TMP_FILE=$PIPE2EVAL_TMP_FILE_PATH$PREFIX.$INPUT_LANG
 
-echo " " >> log.txt
-#echo "INPUT_FILE: $INPUT_FILE" >> log.txt
-echo "These 3 combine..." >> log.txt
-echo "PIPE2EVAL_TMP_FILE_PATH: $PIPE2EVAL_TMP_FILE_PATH" >> log.txt
-echo "PREFIX: $PREFIX" >> log.txt
-echo "INPUT_LANG: $INPUT_LANG" >> log.txt
-echo "...to make:" >> log.txt
+echo "---------------------------------------------------------------------------" >> log.txt
+#$(sed '' < "$TMP_FILE.new") >> log.txt
 echo "TMP_FILE: $TMP_FILE" >> log.txt
+# echo "is made of these 3 combined..." >> log.txt
+# echo "PIPE2EVAL_TMP_FILE_PATH: $PIPE2EVAL_TMP_FILE_PATH" >> log.txt
+# echo "PREFIX:                           $PREFIX." >> log.txt
+# echo "INPUT_LANG:                            $INPUT_LANG" >> log.txt
 echo "-------------------------" >> log.txt
 
 fn_exists() {
+	echo "fn_exists" >> log.txt
+
 	declare -F $1 &> /dev/null
 	return $?
 }
 
 fn_call() {
+	echo "fn_call" >> log.txt
+
 	if fn_exists $INPUT_LANG\_$1; then
 		$INPUT_LANG\_$1 ${@:2}
 	else
@@ -37,6 +42,8 @@ fn_call() {
 }
 
 process_commands() {
+	echo "process_commands" >> log.txt
+
 	cmd="$( sed -n '1 s/^[#\/;-]\{1,2\}> \([a-zA-Z0-9_-]\+\) \?\(.*\)\?$/\1/p' < $TMP_FILE.new)"
 	args="$(sed -n '1 s/^[#\/;-]\{1,2\}> \([^ ]\+\) \(.*\)$/\2/p' < $TMP_FILE.new)"
 
@@ -51,6 +58,8 @@ process_commands() {
 }
 
 hr() {
+	echo "hr" >> log.txt
+
 	echo -n "$1"
 	pad=$(printf '%0.1s' "-"{1..80})
 	padlen=$((80 - ${#1} - ${#2}))
@@ -61,14 +70,20 @@ hr() {
 # commands ---------------------------------------------------------------------
 
 default_command_files() {
+	echo "default_command_files" >> log.txt
+
 	find $PIPE2EVAL_TMP_FILE_PATH -maxdepth 1 -name "$PREFIX.$INPUT_LANG*"
 }
 
 default_command_reset() {
+	echo "default_command_reset" >> log.txt
+
 	find $PIPE2EVAL_TMP_FILE_PATH -maxdepth 1 -name "$PREFIX.$INPUT_LANG*" -exec rm -f {} \;
 }
 
 default_command_set() {
+	echo "default_command_set" >> log.txt
+
 	if [ -n "$1" ]; then
 		echo $2 > $TMP_FILE.$1
 	fi
@@ -78,15 +93,21 @@ default_command_set() {
 # default ----------------------------------------------------------------------
 
 default_comment() {
+	echo "default_comment" >> log.txt
+
 	# do nothing
 	:
 }
 
 default_init() {
+	echo "default_init" >> log.txt
+
 	fn_call reset > /dev/null
 }
 
 default_reset() {
+	echo "default_reset" >> log.txt
+
 	> $TMP_FILE
 	> $TMP_FILE.error
 	echo '# context cleared'
@@ -99,6 +120,8 @@ default_error() {
 }
 
 default_merge() {
+	echo "default_merge" >> log.txt
+
 	# do nothing
 	:
 }
@@ -106,7 +129,8 @@ default_merge() {
 default_eval() {
 	echo "default_eval called" >> log.txt
 
-	cat $TMP_FILE "$TMP_FILE.new" |  $INPUT_LANG - 2> "$TMP_FILE.error" |\
+	cat $TMP_FILE "$TMP_FILE.new" | \
+		$INPUT_LANG - 2> "$TMP_FILE.error" | \
 		sed -e 's/^\(.*\)$/# \1/'
 }
 
@@ -542,12 +566,12 @@ r_eval() {
 # main -------------------------------------------------------------------------
 
 main() {
+	echo "Before we tee it, TMP_FILE.new still has its old value:" >> log.txt
+	$(sed '' < "$TMP_FILE.new") >> log.txt
 	tee $TMP_FILE.new
+	echo "After we tee it, TMP_FILE.new has the new value:" >> log.txt
+	$(sed '' < "$TMP_FILE.new") >> log.txt
 
-# 	# Log the above tee command.
-# 	echo "tee $TMP_FILE.new" >> log.txt
-# 
-# 	echo "-------------------------" >> log.txt
 # 	echo "Frankly, I don't understand why we care about $TMP_FILE right here." >> log.txt
 # 	# This block of logging code helps make sense of the block of code below it.
 # 	if [ ! -f "$TMP_FILE" ]; then
@@ -556,15 +580,11 @@ main() {
 # 		echo "$TMP_FILE exists and is a regular file, so DO NOT call: fn_call 'init'." >> log.txt
 # 	fi
 # 
+
  	if [ ! -f "$TMP_FILE" ]; then
  		echo "fn_call 'init'" >> log.txt
  		fn_call 'init'
  	fi
-
-	echo "-------------------------" >> log.txt
-	echo "Somehow $TMP_FILE.new has our selected text here already." >> log.txt
-	$(sed '/^$/d' < "$TMP_FILE.new") >> log.txt
-	$(sed '' < "$TMP_FILE.new") >> log.txt
 
 	if [ -z "$(sed '/^$/d' < "$TMP_FILE.new")" ]; then
 		fn_call 'reset'
@@ -573,7 +593,6 @@ main() {
 	fi
 
 	echo "-------------------------" >> log.txt
-	echo "process_commands" >> log.txt
 	process_commands
 
 	echo "-------------------------" >> log.txt

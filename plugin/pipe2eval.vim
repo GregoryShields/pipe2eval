@@ -16,15 +16,15 @@ function! Get_path_to_script_file()
 	endtry
 endfunction
 
-let s:map_key_default = "<Space>"
-let g:pipe2eval = Get_path_to_script_file()
+let s:map_key_default = '<Space>'
+let s:pipe2eval_script = Get_path_to_script_file()
 
 function! Pipe2eval(lang)
 	" See NOTE 3
 	let l:map_key = exists('g:pipe2eval_map_key') ? g:pipe2eval_map_key : s:map_key_default
 
 	" See NOTE 4
-	execute "vmap <buffer> " . l:map_key . " :!". g:pipe2eval . " " . a:lang . " " . expand('%:p') . "<CR><CR>gv<Esc>"
+	execute "vmap <buffer> " . l:map_key . " :!". s:pipe2eval_script . " " . a:lang . " " . expand('%:p') . "<CR><CR>gv<Esc>"
 endfunction
 
 " See NOTE 5
@@ -44,12 +44,12 @@ au FileType * call Pipe2eval(&filetype)
 "
 " NOTE 2: Get_path_to_script_file()
 " Added this function to preserve current value of &shellslash,
-" but to make sure it's set while setting g:pipe2eval variable.
-" It has to appear in code before it is used, so I put it here.
+" but to make sure it's set while setting s:pipe2eval_script variable.
 "
 " NOTE 3: l:map_key
 " If the user set g:pipe2eval_map_key in vimrc, then use that as our map key.
-" Otherwise, set our map key to the default, which we defined above as "<Space>".
+" Otherwise, set our map key to the default, which we defined above this
+" function as "<Space>".
 " Since I haven't set g:pipe2eval_map_key, then we can assume here that...
 " l:map_key = "<Space>"
 "
@@ -88,7 +88,7 @@ au FileType * call Pipe2eval(&filetype)
 " which calls the same Bash script in a different (better?) way.
 "
 " You can get a good idea of what it's doing by running this...
-" echo "vmap <buffer> ". "<Space>" ." :!". g:pipe2eval ." ". "bash" . " " . expand('%:p') . "<CR><CR>gv<Esc>"
+" echo "vmap <buffer> ". "<Space>" ." :!". s:pipe2eval_script ." ". "bash" . " " . expand('%:p') . "<CR><CR>gv<Esc>"
 " ...which outputs this...
 " vmap <buffer> <Space> :!C:/gVim/Hm/vimfiles/pack/zweifisch/start/pipe2eval/plugin/pipe2eval.sh bash C:/gVim/Hm/vimfiles/pack/zweifisch/start/pipe2eval/plugin/pipe2eval.vim<CR><CR>gv<esc>
 " 
