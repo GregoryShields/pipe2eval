@@ -94,6 +94,8 @@ au FileType * call Pipe2eval(&filetype)
 " echo "vmap <buffer> ". "<Space>" ." :!". g:pipe2eval_script ." ". &filetype . " " . expand('%:p') . "<CR><CR>gv<Esc>"
 " ...which outputs this...
 " vmap <buffer> <Space> :!C:/gVim/Hm/vimfiles/pack/zweifisch/start/pipe2eval/plugin/pipe2eval.sh bash C:/gVim/Hm/vimfiles/pack/zweifisch/start/pipe2eval/plugin/pipe2eval.vim<CR><CR>gv<esc>
+" Or run it like...
+" :!C:/gVim/Hm/vimfiles/pack/zweifisch/start/pipe2eval/plugin/pipe2eval.sh &filetype expand('%:p')
 " 
 "
 " NOTE 5: FileType

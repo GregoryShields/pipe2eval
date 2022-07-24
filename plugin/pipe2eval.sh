@@ -24,6 +24,12 @@ echo "PREFIX:                           $PREFIX." >> log.txt
 echo "INPUT_LANG:                            $INPUT_LANG" >> log.txt
 echo "-------------------------" >> log.txt
 
+echo "TMP_FILE: $TMP_FILE"
+echo "is made of these 3 combined..."
+echo "PIPE2EVAL_TMP_FILE_PATH: $PIPE2EVAL_TMP_FILE_PATH"
+echo "PREFIX:                           $PREFIX."
+echo "INPUT_LANG:                            $INPUT_LANG"
+
 fn_exists() {
 	declare -F $1 &> /dev/null
 	return $?
